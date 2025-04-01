@@ -1,0 +1,16 @@
+FROM node:20
+RUN npm install -g pnpm@10.5.2
+
+# Set working directory to the monorepo root
+WORKDIR /monorepo
+
+# Copy specific directories explicitly
+COPY pnpm-workspace.yaml /monorepo/
+COPY packages /monorepo/packages/
+COPY apps /monorepo/apps/
+
+# Debug: List the copied files
+RUN ls -R /monorepo
+
+# Stop here for debugging
+CMD ["sleep", "infinity"]

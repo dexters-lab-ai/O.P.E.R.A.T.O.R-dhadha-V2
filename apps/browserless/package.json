@@ -1,0 +1,1 @@
+{ "name": "@aident/browserless", "version": "0.1.0", "private": true, "scripts": { "start": "node server.js" }, "dependencies": { "puppeteer-core": "^23.10.3", "@types/puppeteer-core": "^7.0.4", "@types/socket.io": "^3.0.2" } } 

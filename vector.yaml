@@ -1,0 +1,12 @@
+sources:
+  docker_logs:
+    type: docker_logs
+    api:
+      host: "tcp://host.docker.internal:2375"
+sinks:
+  console:
+    type: console
+    inputs:
+      - docker_logs
+    encoding:
+      codec: json

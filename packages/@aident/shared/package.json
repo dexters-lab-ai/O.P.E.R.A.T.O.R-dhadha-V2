@@ -1,0 +1,28 @@
+{
+  "name": "@aident/shared",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "coverage": "jest ./src --coverage --coverageDirectory='coverage' --collectCoverageFrom='./src/**/*.ts'",
+    "format": "npx prettier . --write",
+    "test": "jest",
+    "test:ci": "npm run test -- --ci"
+  },
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch-logs": "^3.777.0",
+    "@langchain/openai": "^0.3.12",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "common-tags": "1.8.2",
+    "neo4j-driver": "^5.23.0",
+    "sharp": "^0.33.5",
+    "socket.io-client": "^4.8.1",
+    "winston": "^3.13.0",
+    "winston-cloudwatch": "^6.3.0"
+  }
+}

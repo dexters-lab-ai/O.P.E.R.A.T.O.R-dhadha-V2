@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  supabase_db_open-cuak:
+    image: supabase/postgres:15.1.1.41
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - supabase_db_data:/var/lib/postgresql/data
+
+  supabase_storage_open-cuak:
+    image: supabase/storage-api:v1.17.0
+    ports:
+      - "54324:5000"
+    depends_on:
+      - supabase_db_open-cuak
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@supabase_db_open-cuak:5432/postgres
+      - POSTGREST_URL=http://supabase_rest_open-cuak:3000
+
+  supabase_rest_open-cuak:
+    image: postgrest/postgrest:v12.2.7
+    ports:
+      - "3001:3000"
+    depends_on:
+      - supabase_db_open-cuak
+    environment:
+      - PGRST_DB_URI=postgres://postgres:postgres@supabase_db_open-cuak:5432/postgres
+
+  supabase_vector_open-cuak:
+    image: public.ecr.aws/supabase/vector:0.28.1-alpine
+    ports:
+      - "8686:8686"
+
+  supabase_auth_open-cuak:
+    image: supabase/gotrue:v2.151.0
+    ports:
+      - "9999:9999"
+    depends_on:
+      - supabase_db_open-cuak
+    environment:
+      - GOTRUE_DB_DATABASE_URL=postgres://postgres:postgres@supabase_db_open-cuak:5432/postgres
+
+  open-cuak-web:
+    build:
+      context: ../
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - supabase_db_open-cuak
+      - supabase_rest_open-cuak
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=http://supabase_rest_open-cuak:3000
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      - DATABASE_URL=postgres://postgres:postgres@supabase_db_open-cuak:5432/postgres
+    command: ["pnpm", "run", "next-dev"]  # Double-check this line
+
+volumes:
+  supabase_db_data:
+
+networks:
+  default:
+    name: supabase_network_open-cuak

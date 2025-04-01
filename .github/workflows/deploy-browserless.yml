@@ -1,0 +1,85 @@
+name: Deploy Browserless to Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (defaults to latest if empty)'
+        required: false
+        type: string
+  workflow_run:
+    workflows: ['CI Browserless']
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  AZURE_APP_ENV_NAME: ${{ secrets.AZURE_APP_ENV_NAME }}
+  AZURE_APP_NAME: ${{ secrets.AZURE_APP_NAME }}
+  AZURE_CONTAINER_APP_ENV_NAME: ${{ secrets.AZURE_CONTAINER_APP_ENV_NAME }}
+  AZURE_CONTAINER_APP_NAME: open-cuak-browserless
+  AZURE_DOMAIN_NAME: ${{ secrets.AZURE_DOMAIN_NAME }}
+  AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}
+  AZURE_RESOURCE_GROUP: open-cuak-rg
+  AZURE_TLS_SECRET_NAME: ${{ secrets.AZURE_TLS_SECRET_NAME }}
+  DOCK_IMAGE_NAME: aident-ai/open-cuak-browserless
+
+jobs:
+  check-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check user permission
+        id: check-permission
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          USER_PERMISSIONS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/${{ github.repository }}/collaborators/${{ github.actor }}/permission" | jq -r '.permission')
+
+          echo "User permission: $USER_PERMISSIONS"
+
+          if [[ "$USER_PERMISSIONS" != "admin" ]]; then
+            echo "❌ You do not have admin permissions to run this workflow."
+            exit 1
+          fi
+
+          echo "User has admin permissions, proceeding with deployment."
+
+  deploy:
+    needs: check-admin
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    name: Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set image tag
+        id: set-tag
+        run: |
+          if [ -z "${{ github.event.inputs.image_tag }}" ]; then
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+          fi
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        
+      - name: Install gettext package
+        run: sudo apt-get update && sudo apt-get install -y gettext-base
+        
+      - name: Deploy to Azure Container Apps using script
+        run: bash scripts/deploy-containers-to-azure.sh
